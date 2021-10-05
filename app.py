@@ -1,36 +1,31 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, send_file, redirect
 import random
 import numpy as np
+from numpy.core.fromnumeric import reshape
 import cv2
 from detector import Detector
 
 app = Flask(__name__)
-
+result = None
 
 def image_to_cv2(byte_image):
-    np_arr = np.fromstring(byte_image, np.uint8)
-    image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-    return image
+    image = np.asarray(bytearray(byte_image), dtype="uint8")
+    loaded_file = cv2.imdecode(image, cv2.IMREAD_COLOR)
+    return loaded_file
 
 
 def image_is_valid(*args, **kwargs):
     return True
 
 
-def get_random_number():
-    ltrs = 'AA AM AI AK BM GG KB ND IG SM BK NR EN'.split()
-    return {
-        'bbox': [random.randint(0, 4000) for i in range(4)],
-        'text': random.choice(ltrs) + ''.join([str(random.randint(0, 10)) for i in range(4)]) + random.choice(ltrs)}
-
-
 @app.route('/')
 def upload_file_page():
-    return render_template('index.html')
+    return render_template('index.html', result=bool(result))
 
 
 @app.route('/uploader', methods=['GET', 'POST'])
 def upload_file():
+    global result
     if request.method == 'POST':
         f = request.files['file']
         if image_is_valid(f):
@@ -39,8 +34,13 @@ def upload_file():
             raise Exception
         d = Detector()
         image_data = d.get_image_data(image)
-
+        result = d.draw_on_image(image, image_data)
         # f.save(secure_filename(f.filename))
-        return render_template('result.html', plates_text=[plate['text'] for plate in image_data])
+        return redirect("/")
     else:
         return 'Hi!'
+
+@app.route("/downloader", methods=["GET", "POST"])
+def downloader():
+    if request.method == "GET":
+        return send_file(result, download_name="image.png")

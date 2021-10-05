@@ -5,5 +5,16 @@
     <input type="file" name="file"/>
     <input type="submit"/>
 </form>
+<div>
+  {% if result %}
+  <div>
+      <form method="get" action="http://localhost:5000/downloader">
+          <button type="submit">Download!</button>
+      </form>
+  </div>
+  {% endif %}
+
+</div>
+
 </body>
 </html>
