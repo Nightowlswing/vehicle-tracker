@@ -5,6 +5,7 @@ from typing import Dict, List, Any, Tuple
 import pytesseract
 from PIL import Image
 import io
+
 from model.data_preprocessing import PredictionTransform
 
 class Detector:
@@ -37,13 +38,13 @@ class Detector:
         # TODO for i in range(len(bounding_boxes[:])):
         for i in range(len(bounding_boxes[:1])):
             box = bounding_boxes[i, :]
-            plate = original_image[int(box[1]):int(box[3]), int(box[0]):int(box[2])]
+            plate = original_image[box[1]:box[3], box[0]:box[2]]
             text = recognize_text(plate)
             result.append((box, text))
 
         return result
 
-    def _find_bounding_boxes(self, image: numpy.ndarray, original_shape: Tuple[int, int]) -> List[List[float]]:
+    def _find_bounding_boxes(self, image: numpy.ndarray, original_shape: Tuple[int, int]) -> List[List[int]]:
         """
         get bounding boxes of image
         :param image: opencv image
@@ -57,7 +58,20 @@ class Detector:
         boxes[:, 1] *= height
         boxes[:, 2] *= width
         boxes[:, 3] *= height
-        return boxes
+
+        remembers = [boxes[0][0]]
+        new_boxes = [boxes[0]]
+
+        for box in boxes:
+            flag = True
+            for remember in remembers:
+                if( abs(remember - box[0]) < 40):
+                    flag = False
+                    break
+            if flag:
+                remembers.append(box[0])
+                new_boxes.append(box)
+        return numpy.array(new_boxes).astype('int')
 
     def draw_on_image(self, image: numpy.ndarray, boxes_with_test: Tuple[numpy.ndarray, str]):
         for box, text in boxes_with_test:
