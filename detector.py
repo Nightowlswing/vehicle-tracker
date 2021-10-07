@@ -87,15 +87,16 @@ class Detector:
 def recognize_text(image: numpy.ndarray):
     symbols = format_image(image)
     result = ""
+    alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
     for s in symbols:
         
         
         r = pytesseract.image_to_string(s, lang='eng',
                                               config='--oem 3 --psm 6 -c tessedit_char_whitelist='
-                                                      'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+                                                      f'{alphabet}')
         result += r
     
-    result = result.replace("\n", "").replace(" ", "").upper()
+    result = "".join(filter(lambda x: x in alphabet, result.replace("\n", "").replace(" ", "").upper()))
     return result
 
 def format_image(image):
