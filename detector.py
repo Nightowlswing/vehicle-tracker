@@ -79,8 +79,8 @@ class Detector:
             cv2.putText(image, text, (int(box[0]), int(box[1])), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,255), 2, cv2.LINE_AA)
         image_pil = Image.fromarray(image)
         img_byte_arr = io.BytesIO()
-        # image_pil.save(img_byte_arr, format='PNG')
-        image_pil.save("im.png")
+        image_pil.save(img_byte_arr, 'JPEG', quality=70)
+        img_byte_arr.seek(0)
         return img_byte_arr
 
 
@@ -89,16 +89,12 @@ def recognize_text(image: numpy.ndarray):
     result = ""
     for s in symbols:
         
-        # uncommenting try this
-        # cv2_imshow(s)
         
         r = pytesseract.image_to_string(s, lang='eng',
                                               config='--oem 3 --psm 6 -c tessedit_char_whitelist='
                                                       'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
         result += r
     
-    # uncommenting and this
-    # cv2_imshow(image)
     result = result.replace("\n", "").replace(" ", "").upper()
     return result
 

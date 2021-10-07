@@ -43,4 +43,4 @@ def upload_file():
 @app.route("/downloader", methods=["GET", "POST"])
 def downloader():
     if request.method == "GET":
-        return send_file(result, download_name="image.png")
+        return send_file(result, mimetype='image/jpeg')
