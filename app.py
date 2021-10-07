@@ -4,9 +4,13 @@ import numpy as np
 from numpy.core.fromnumeric import reshape
 import cv2
 from detector import Detector
+import time
 
 app = Flask(__name__)
 result = None
+d = Detector()
+
+
 
 def image_to_cv2(byte_image):
     image = np.asarray(bytearray(byte_image), dtype="uint8")
@@ -27,14 +31,17 @@ def upload_file_page():
 def upload_file():
     global result
     if request.method == 'POST':
+
+        start = time.time()
         f = request.files['file']
         if image_is_valid(f):
             image = image_to_cv2(f.read())
         else:
             raise Exception
-        d = Detector()
+        
         image_data = d.get_image_data(image)
         result = d.draw_on_image(image, image_data)
+        print(time.time()- start)
         # f.save(secure_filename(f.filename))
         return redirect("/")
     else:

@@ -6,6 +6,8 @@ import pytesseract
 from PIL import Image
 import io
 
+from keras_ocr import recognition
+
 from model.data_preprocessing import PredictionTransform
 
 class Detector:
@@ -18,6 +20,7 @@ class Detector:
         
         self._label_name1, self._label_name12 = tuple([attr.name for attr in self._sess.get_outputs()])
         self.transform = PredictionTransform(300, 127,128)
+        self.text_recognizer = recognition.Recognizer()
 
     def _preprocess_image(self, image: numpy.ndarray):
         trans = self.transform(image)
@@ -36,10 +39,10 @@ class Detector:
         # boxes_with_text = [{'box': box, 'text': self._get_text(image, box)} for box in bounding_boxes]
         result = []
         # TODO for i in range(len(bounding_boxes[:])):
-        for i in range(len(bounding_boxes[:1])):
+        for i in range(len(bounding_boxes[:])):
             box = bounding_boxes[i, :]
             plate = original_image[box[1]:box[3], box[0]:box[2]]
-            text = recognize_text(plate)
+            text = self._recognize_text(plate)
             result.append((box, text))
 
         return result
@@ -84,23 +87,15 @@ class Detector:
         return img_byte_arr
 
 
-def recognize_text(image: numpy.ndarray):
-    symbols = format_image(image)
-    result = ""
-    for s in symbols:
-        
-        # uncommenting try this
-        # cv2_imshow(s)
-        
-        r = pytesseract.image_to_string(s, lang='eng',
-                                              config='--oem 3 --psm 6 -c tessedit_char_whitelist='
-                                                      'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
-        result += r
-    
-    # uncommenting and this
-    # cv2_imshow(image)
-    result = result.replace("\n", "").replace(" ", "").upper()
-    return result
+    def _recognize_text(self, image: numpy.ndarray):
+        symbols = format_image(image)
+        result = ""
+        for i, s in enumerate( symbols):
+            result += self.text_recognizer.recognize(s)
+            cv2.imwrite(f'{i}.png', s)
+
+        #result = result.replace("\n", "").replace(" ", "").upper()
+        return result
 
 def format_image(image):
     grayscale_resize_test_license_plate = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -139,6 +134,6 @@ def format_image(image):
             continue
 
         used_pixels = used_pixels.union(roi_used_pixels)
-        symbols.append(roi)
+        symbols.append(cv2.cvtColor(cv2.resize(roi, (roi.shape[1]*4, roi.shape[0]*4) ), cv2.COLOR_GRAY2BGR))
 
     return symbols
