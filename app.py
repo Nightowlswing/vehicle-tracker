@@ -7,6 +7,7 @@ from detector import Detector
 
 app = Flask(__name__)
 result = None
+detector = Detector()
 
 def image_to_cv2(byte_image):
     image = np.asarray(bytearray(byte_image), dtype="uint8")
@@ -32,9 +33,8 @@ def upload_file():
             image = image_to_cv2(f.read())
         else:
             raise Exception
-        d = Detector()
-        image_data = d.get_image_data(image)
-        result = d.draw_on_image(image, image_data)
+        image_data = detector.get_image_data(image)
+        result = detector.draw_on_image(image, image_data)
         # f.save(secure_filename(f.filename))
         return redirect("/")
     else:

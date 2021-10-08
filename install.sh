@@ -4,5 +4,4 @@ pip install opencv-python
 pip install pytesseract
 pip install opencv-python
 pip install Flask
-pip install requests
 pip install onnxruntime

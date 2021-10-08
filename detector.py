@@ -5,7 +5,6 @@ from typing import Dict, List, Any, Tuple
 import pytesseract
 from PIL import Image
 import io
-
 from model.data_preprocessing import PredictionTransform
 
 class Detector:
@@ -77,7 +76,7 @@ class Detector:
         for box, text in boxes_with_test:
             cv2.rectangle(image, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 255), 2)
             cv2.putText(image, text, (int(box[0]), int(box[1])), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,255), 2, cv2.LINE_AA)
-        image_pil = Image.fromarray(image)
+        image_pil = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
         img_byte_arr = io.BytesIO()
         image_pil.save(img_byte_arr, 'JPEG', quality=70)
         img_byte_arr.seek(0)
