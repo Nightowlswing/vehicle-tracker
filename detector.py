@@ -35,7 +35,7 @@ class Detector:
         # boxes_with_text = [{'box': box, 'text': self._get_text(image, box)} for box in bounding_boxes]
         result = []
         # TODO for i in range(len(bounding_boxes[:])):
-        for i in range(len(bounding_boxes[:1])):
+        for i in range(len(bounding_boxes[:])):
             box = bounding_boxes[i, :]
             plate = original_image[box[1]:box[3], box[0]:box[2]]
             text = recognize_text(plate)
@@ -43,7 +43,7 @@ class Detector:
 
         return result
 
-    def _find_bounding_boxes(self, image: numpy.ndarray, original_shape: Tuple[int, int]) -> List[List[int]]:
+    def _find_bounding_boxes(self, image: numpy.ndarray, original_shape: Tuple[int, int]) -> numpy.ndarray:
         """
         get bounding boxes of image
         :param image: opencv image
@@ -51,13 +51,16 @@ class Detector:
         """
         scores, boxes = self._sess.run([self._label_name1, self._label_name12], {self._input_name: image.astype(numpy.float32)})
         mask = scores[0][:,1]>0.2
+
         boxes = boxes[0][mask]
+        if len(boxes) == 0:
+            return []
         height, width = original_shape
         boxes[:, 0] *= width
         boxes[:, 1] *= height
         boxes[:, 2] *= width
         boxes[:, 3] *= height
-
+    
         remembers = [boxes[0][0]]
         new_boxes = [boxes[0]]
 
