@@ -5,6 +5,7 @@ import pytesseract
 from PIL import Image
 import io
 import time
+import logging
 
 from plate_detector import PlateDetector
 
@@ -15,7 +16,7 @@ class Detector:
     """
     def __init__(self):
         self.plateDetector = PlateDetector('weights/best.pt', 'cpu')
-        
+        self.logger = logging.getLogger()
 
 
     def get_image_data(self, original_image: numpy.ndarray) -> List[Dict[str, Any]]:
@@ -26,7 +27,8 @@ class Detector:
         """
         start = time.time()
         bounding_boxes = self.plateDetector.get_boxes(original_image)
-        print(bounding_boxes)
+        bounds_found = time.time() - start
+        self.logger.info(f"found next bounding boxes {bounding_boxes}")
         # boxes_with_text = [{'box': box, 'text': self._get_text(image, box)} for box in bounding_boxes]
         result = []
         # TODO for i in range(len(bounding_boxes[:])):
@@ -34,9 +36,10 @@ class Detector:
             box = bounding_boxes[i, :]
             plate = original_image[box[1]:box[3], box[0]:box[2]]
             text = recognize_text(plate)
+            
             result.append((box, text))
-
-        print( "TIME on 1 image boxes", time.time()- start)
+        text_recognized = time.time() - bounds_found - start
+        self.logger.info(f"found boxes: {bounding_boxes}. time_on_boxes: {round(bounds_found, 3)}. time_on_text: {round(text_recognized, 3)}")
         return result
 
     def draw_on_image(self, image: numpy.ndarray, boxes_with_test: Tuple[numpy.ndarray, str]):
@@ -46,9 +49,8 @@ class Detector:
         image_pil = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
         img_byte_arr = io.BytesIO()
         image_pil.save(img_byte_arr, 'JPEG', quality=70)
-        img_byte_arr.seek(0)
-        print(id(img_byte_arr))
-        return img_byte_arr
+        res = img_byte_arr.getvalue()
+        return res
 
 
 def recognize_text(image: numpy.ndarray):
