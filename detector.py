@@ -1,27 +1,22 @@
-import onnxruntime as rt
 import cv2
 import numpy 
 from typing import Dict, List, Any, Tuple
 import pytesseract
 from PIL import Image
 import io
-from model.data_preprocessing import PredictionTransform
+import time
+
+from plate_detector import PlateDetector
+
 
 class Detector:
     """
         class to get image data (bounding boxes of license plates with description)
     """
-    def __init__(self): 
-        self._sess = rt.InferenceSession("./model/az_plate_ssdmobilenetv1.onnx")
-        self._input_name = self._sess.get_inputs()[0].name
+    def __init__(self):
+        self.plateDetector = PlateDetector('weights/best.pt', 'cpu')
         
-        self._label_name1, self._label_name12 = tuple([attr.name for attr in self._sess.get_outputs()])
-        self.transform = PredictionTransform(300, 127,128)
 
-    def _preprocess_image(self, image: numpy.ndarray):
-        trans = self.transform(image)
-        image = numpy.expand_dims(trans, axis=3).reshape((1, 3, 300, 300))
-        return image
 
     def get_image_data(self, original_image: numpy.ndarray) -> List[Dict[str, Any]]:
         """
@@ -29,9 +24,9 @@ class Detector:
         :param image: opencv image
         :return: image data
         """
-        original_shape = original_image.shape[:2]
-        image = self._preprocess_image(original_image)
-        bounding_boxes = self._find_bounding_boxes(image, original_shape)
+        start = time.time()
+        bounding_boxes = self.plateDetector.get_boxes(original_image)
+        print(bounding_boxes)
         # boxes_with_text = [{'box': box, 'text': self._get_text(image, box)} for box in bounding_boxes]
         result = []
         # TODO for i in range(len(bounding_boxes[:])):
@@ -41,39 +36,8 @@ class Detector:
             text = recognize_text(plate)
             result.append((box, text))
 
+        print( "TIME on 1 image boxes", time.time()- start)
         return result
-
-    def _find_bounding_boxes(self, image: numpy.ndarray, original_shape: Tuple[int, int]) -> numpy.ndarray:
-        """
-        get bounding boxes of image
-        :param image: opencv image
-        :return: list with bounding boxes
-        """
-        scores, boxes = self._sess.run([self._label_name1, self._label_name12], {self._input_name: image.astype(numpy.float32)})
-        mask = scores[0][:,1]>0.2
-
-        boxes = boxes[0][mask]
-        if len(boxes) == 0:
-            return []
-        height, width = original_shape
-        boxes[:, 0] *= width
-        boxes[:, 1] *= height
-        boxes[:, 2] *= width
-        boxes[:, 3] *= height
-    
-        remembers = [boxes[0][0]]
-        new_boxes = [boxes[0]]
-
-        for box in boxes:
-            flag = True
-            for remember in remembers:
-                if( abs(remember - box[0]) < 40):
-                    flag = False
-                    break
-            if flag:
-                remembers.append(box[0])
-                new_boxes.append(box)
-        return numpy.array(new_boxes).astype('int')
 
     def draw_on_image(self, image: numpy.ndarray, boxes_with_test: Tuple[numpy.ndarray, str]):
         for box, text in boxes_with_test:
@@ -83,6 +47,7 @@ class Detector:
         img_byte_arr = io.BytesIO()
         image_pil.save(img_byte_arr, 'JPEG', quality=70)
         img_byte_arr.seek(0)
+        print(id(img_byte_arr))
         return img_byte_arr
 
 
